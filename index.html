@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lingua – Language Translation Tool</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Manrope:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#4a1230; --muted:#a05a7d; --bg:#fff5f9; --card:#ffffff; --line:#fbd3e4;
+  --a:#ec4899; --b:#fb7185; --hot:#e11d48; --ok:#db2777;
+}
+*{box-sizing:border-box;margin:0}
+body{font-family:'Manrope',system-ui,sans-serif;color:var(--ink);background:var(--bg);min-height:100vh;
+  background-image:radial-gradient(circle at 10% 0%,rgba(236,72,153,.22),transparent 45%),radial-gradient(circle at 95% 100%,rgba(251,113,133,.22),transparent 45%);
+  padding:24px 16px 48px}
+.wrap{max-width:960px;margin:0 auto}
+header{text-align:center;padding:28px 0 24px}
+h1{font-family:'Fraunces',Georgia,serif;font-weight:800;font-size:clamp(2.2rem,6vw,3.6rem);letter-spacing:-.02em;
+  background:linear-gradient(90deg,var(--a),var(--b));-webkit-background-clip:text;background-clip:text;color:transparent}
+header p{color:var(--muted);margin-top:8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:24px;box-shadow:0 20px 50px -20px rgba(236,72,153,.35);overflow:hidden}
+.bar{display:flex;gap:10px;align-items:center;padding:14px;border-bottom:1px solid var(--line);
+  background:linear-gradient(90deg,rgba(236,72,153,.08),rgba(251,113,133,.08))}
+select{flex:1;min-width:0;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--card);
+  color:var(--ink);font:inherit;font-weight:700;cursor:pointer}
+.swap{width:44px;height:44px;flex:none;border:0;border-radius:50%;cursor:pointer;color:#fff;font-size:20px;
+  background:linear-gradient(135deg,var(--a),var(--b));transition:transform .35s}
+.swap:hover{transform:rotate(180deg)}
+.panes{display:grid;grid-template-columns:1fr 1fr}
+.pane{padding:16px;display:flex;flex-direction:column;min-height:260px}
+.pane+.pane{border-left:1px solid var(--line);background:rgba(236,72,153,.04)}
+textarea,.out{flex:1;width:100%;border:0;outline:0;resize:none;background:transparent;color:var(--ink);
+  font:inherit;font-size:1.15rem;line-height:1.6}
+.out{white-space:pre-wrap;overflow:auto}
+.out.empty{color:var(--muted)}
+.tools{display:flex;align-items:center;gap:8px;margin-top:10px;color:var(--muted);font-size:.85rem}
+.tools .sp{flex:1}
+.ib{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:8px 12px;
+  cursor:pointer;font:inherit;font-size:.9rem;font-weight:600}
+.ib:hover{border-color:var(--a);color:var(--a)}
+.go{margin:14px;width:calc(100% - 28px);padding:16px;border:0;border-radius:14px;color:#fff;font:inherit;
+  font-weight:800;font-size:1.05rem;cursor:pointer;background:linear-gradient(90deg,var(--a),#f43f5e 55%,var(--b));
+  box-shadow:0 10px 24px -10px var(--a);transition:transform .15s}
+.go:hover{transform:translateY(-2px)}
+.go:disabled{opacity:.6;cursor:wait}
+.msg{padding:0 16px 14px;font-size:.9rem;min-height:1.4em;color:var(--hot);text-align:center}
+.msg.ok{color:var(--ok)}
+footer{text-align:center;color:var(--muted);font-size:.8rem;margin-top:18px}
+:focus-visible{outline:3px solid var(--b);outline-offset:2px}
+@media(max-width:640px){.panes{grid-template-columns:1fr}.pane+.pane{border-left:0;border-top:1px solid var(--line)}.pane{min-height:180px}}
+.blob{position:fixed;border-radius:50%;z-index:-1;filter:blur(2px);opacity:.55}
+.b1{width:260px;height:260px;top:-80px;left:-80px;background:radial-gradient(circle at 30% 30%,#fff,#fbcfe8)}
+.b2{width:200px;height:200px;bottom:60px;right:-60px;background:radial-gradient(circle at 30% 30%,#fff,#fda4af)}
+.b3{width:90px;height:90px;top:40%;left:6%;background:radial-gradient(circle at 30% 30%,#fff,#f9a8d4)}
+</style>
+</head>
+<body>
+<div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
+<div class="wrap">
+  <header>
+    <h1>Lingua</h1>
+    <p>Type anything. Pick a language. Understand the world.</p>
+  </header>
+
+  <main class="card">
+    <div class="bar">
+      <select id="src" aria-label="Source language"></select>
+      <button class="swap" id="swap" title="Swap languages" aria-label="Swap languages">⇄</button>
+      <select id="tgt" aria-label="Target language"></select>
+    </div>
+
+    <div class="panes">
+      <section class="pane">
+        <textarea id="input" maxlength="500" placeholder="Enter text to translate…" aria-label="Text to translate"></textarea>
+        <div class="tools">
+          <button class="ib" id="listenSrc">🔊 Listen</button>
+          <button class="ib" id="clear">Clear</button>
+          <span class="sp"></span><span id="count">0 / 500</span>
+        </div>
+      </section>
+      <section class="pane">
+        <div class="out empty" id="output" aria-live="polite">Your translation appears here.</div>
+        <div class="tools">
+          <button class="ib" id="listen">🔊 Listen</button>
+          <button class="ib" id="copy">📋 Copy</button>
+        </div>
+      </section>
+    </div>
+
+    <button class="go" id="go">Translate</button>
+    <div class="msg" id="msg" role="status"></div>
+  </main>
+  <footer>Powered by free translation services · Needs an internet connection</footer>
+</div>
+
+<script>
+const LANGS={auto:"Detect language",en:"English",ta:"Tamil",hi:"Hindi",te:"Telugu",ml:"Malayalam",kn:"Kannada",
+ es:"Spanish",fr:"French",de:"German",it:"Italian",pt:"Portuguese",ru:"Russian",ja:"Japanese",ko:"Korean",
+ zh:"Chinese",ar:"Arabic",tr:"Turkish",nl:"Dutch",id:"Indonesian",th:"Thai",vi:"Vietnamese"};
+const SPEECH={en:"en-US",ta:"ta-IN",hi:"hi-IN",te:"te-IN",ml:"ml-IN",kn:"kn-IN",es:"es-ES",fr:"fr-FR",de:"de-DE",
+ it:"it-IT",pt:"pt-PT",ru:"ru-RU",ja:"ja-JP",ko:"ko-KR",zh:"zh-CN",ar:"ar-SA",tr:"tr-TR",nl:"nl-NL",id:"id-ID",th:"th-TH",vi:"vi-VN"};
+const $=id=>document.getElementById(id);
+const src=$("src"),tgt=$("tgt"),input=$("input"),output=$("output"),msg=$("msg"),go=$("go");
+
+for(const[c,n]of Object.entries(LANGS)){
+  src.add(new Option(n,c));
+  if(c!=="auto")tgt.add(new Option(n,c));
+}
+src.value="en";tgt.value="ta";
+
+function say(t,ok){msg.textContent=t;msg.className="msg"+(ok?" ok":"")}
+function setOut(t,empty){output.textContent=t;output.classList.toggle("empty",!!empty)}
+
+input.addEventListener("input",()=>$("count").textContent=input.value.length+" / 500");
+input.addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&e.key==="Enter")translate()});
+
+async function translate(){
+  const text=input.value.trim();
+  if(!text){say("Enter some text to translate.");return}
+  if(src.value===tgt.value){say("Source and target languages are the same. Pick a different target.");return}
+  say("");go.disabled=true;go.textContent="Translating…";
+  try{
+    const from=src.value;
+    const target=tgt.value;
+
+    // Try free public translation endpoints in order.
+    // If one endpoint is temporarily unavailable, the next one is tried.
+    const endpoints=[
+      "https://translate.argosopentech.com/translate",
+      "https://libretranslate.de/translate"
+    ];
+
+    let lastError="Translation service unavailable.";
+    for(const endpoint of endpoints){
+      try{
+        const body={
+          q:text,
+          source:from==="auto"?"auto":from,
+          target:target,
+          format:"text"
+        };
+        const res=await fetch(endpoint,{
+          method:"POST",
+          headers:{"Content-Type":"application/json","Accept":"application/json"},
+          body:JSON.stringify(body)
+        });
+        const data=await res.json().catch(()=>({}));
+        if(res.ok && data.translatedText){
+          setOut(data.translatedText,false);
+          say("Translated ✔",true);
+          return;
+        }
+        lastError=data.error||("Server returned "+res.status);
+      }catch(err){
+        lastError=err.message||"Network error";
+      }
+    }
+
+    // Final fallback: MyMemory.
+    try{
+      const fromMyMemory=from==="auto"?"Autodetect":from;
+      const url="https://api.mymemory.translated.net/get?q="+encodeURIComponent(text)+"&langpair="+fromMyMemory+"|"+target;
+      const res=await fetch(url);
+      const data=await res.json().catch(()=>({}));
+      if(res.ok && data.responseStatus===200 && data.responseData?.translatedText){
+        setOut(data.responseData.translatedText,false);
+        say("Translated ✔",true);
+        return;
+      }
+      lastError=data.responseDetails||("Server returned "+res.status);
+    }catch(err){
+      lastError=err.message||"Network error";
+    }
+
+    throw new Error(lastError);
+  }catch(err){
+    say("Couldn't translate: "+err.message+". Check your internet connection and try again.");
+  }finally{go.disabled=false;go.textContent="Translate"}
+}
+go.onclick=translate;
+
+$("swap").onclick=()=>{
+  if(src.value==="auto"){say("Pick a specific source language to swap.");return}
+  [src.value,tgt.value]=[tgt.value,src.value];
+  if(!output.classList.contains("empty")){input.value=output.textContent;input.dispatchEvent(new Event("input"));setOut("Your translation appears here.",true)}
+};
+$("clear").onclick=()=>{input.value="";input.dispatchEvent(new Event("input"));setOut("Your translation appears here.",true);say("")};
+
+$("copy").onclick=async()=>{
+  if(output.classList.contains("empty")){say("Nothing to copy yet.");return}
+  try{await navigator.clipboard.writeText(output.textContent);say("Copied to clipboard ✔",true)}
+  catch{say("Copy blocked by the browser. Select the text and copy manually.")}
+};
+
+function speak(text,lang){
+  if(!("speechSynthesis"in window)){say("Text-to-speech isn't supported in this browser.");return}
+  if(!text||output.classList.contains("empty")&&text===output.textContent){say("Nothing to read yet.");return}
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);u.lang=SPEECH[lang]||"en-US";speechSynthesis.speak(u);
+}
+$("listen").onclick=()=>speak(output.textContent,tgt.value);
+$("listenSrc").onclick=()=>speak(input.value.trim(),src.value);
+</script>
+</body>
+</html>
